@@ -11,7 +11,6 @@ Installation
 ------------
 If you already have Python installed on your machine, you can simply grab an archive of
 [the latest release](https://github.com/Skymirrh/dir-diff/releases/latest).
-
 If you do not have Python installed, you can download a Windows executable of
 [the latest release](https://github.com/Skymirrh/dir-diff/releases/latest) built using
 [PyInstaller](http://www.pyinstaller.org/).
