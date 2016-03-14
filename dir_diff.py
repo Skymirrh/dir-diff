@@ -143,7 +143,7 @@ Added:
 {}
 ==============================
 Removed:
-{}\n""".format(basename(prev), basename(next), "\n".join(modified), "\n".join(added), "\n".join(removed))
+{}\n\n""".format(basename(prev), basename(next), "\n".join(modified), "\n".join(added), "\n".join(removed))
     print(details)
 
 # Ad astra per astera
