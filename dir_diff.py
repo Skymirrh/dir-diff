@@ -48,7 +48,8 @@ def quote():
 
 
 # Command line interface
-parser = ShepardArgumentParser(description="Shepard-Commander, we have devised a utility tool to compare versions of a directory and copy detected discrepancies for inspection at your private terminal!", epilog=quote(), add_help=False)
+parser = ShepardArgumentParser(description="Shepard-Commander, we have devised a utility tool to compare versions of a \
+directory and copy detected discrepancies for inspection at your private terminal!", epilog=quote(), add_help=False)
 mandatory = parser.add_argument_group('Mandatory arguments')
 mandatory.add_argument('prev', help="directory to compare against (usually: older version)")
 mandatory.add_argument('next', help="directory to check for changes (usually: newer version)")
@@ -60,7 +61,6 @@ options.add_argument('-d', '--diff-only', help="compare only, no copying", actio
 options.add_argument('-v', '--verbose', help="display additional information", action='store_true')
 options.add_argument('-h', '--help', help="show this help message and exit", action='help')
 args = parser.parse_args()
-
 
 # The actual magic starts here (NO CATALYST INVOLVED, I PROMISE!)
 prev = abspath(args.prev)
@@ -76,7 +76,6 @@ modified = cmp.diff_files
 added = cmp.right_only
 removed = cmp.left_only
 
-
 # Print a summary of changes
 summary = """Summary of changes from {} to {}:
 Unchanged: {}
@@ -85,14 +84,13 @@ Added:     {}
 Removed:   {}\n\n""".format(basename(prev), basename(next), len(unchanged), len(modified), len(added), len(removed))
 print(summary)
 
-
 # Copying changes
 if not args.diff_only:
     if args.changes != '':
         base_dir = abspath(args.changes)
     else:
         base_dir = abspath('diff-{}-to-{}'.format(basename(prev), basename(next)))
-    
+
     if args.verbose:
         displayed_path = "\n{}".format(base_dir)
     else:
@@ -107,14 +105,14 @@ if not args.diff_only:
         (added, added_dir),
         (removed, removed_dir),
     ]
-    
+
     # Force delete
     if args.force:
         try:
             shutil.rmtree(base_dir)
         except OSError:
-            pass # If directory can't be found
-    
+            pass  # If directory can't be found
+
     # Create a separate directory for each type of changes and populate
     try:
         os.makedirs(base_dir)
@@ -134,7 +132,6 @@ See usage help (-h) for more information.\n""")
                         print("Error: can't copy file {}.".format(file))
         print("Done copying!\n\n")
 
-
 # Detailed report
 if args.verbose:
     details = """Details of changes from {} to {}:
@@ -148,7 +145,6 @@ Added:
 Removed:
 {}\n""".format(basename(prev), basename(next), "\n".join(modified), "\n".join(added), "\n".join(removed))
     print(details)
-
 
 # Ad astra per astera
 print(quote())
