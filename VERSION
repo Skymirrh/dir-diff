@@ -16,7 +16,7 @@ VSVersionInfo(
         u'040904B0',
         [StringStruct(u'FileDescription', u'ALOT diff tool'),
         StringStruct(u'FileVersion', u'1.0.0.0'),
-				StringStruct(u'ProductName', u'ALOT diff tool'),
+        StringStruct(u'ProductName', u'ALOT diff tool'),
         StringStruct(u'ProductVersion', u'1.0.0.0'),
         StringStruct(u'LegalCopyright', u'(c) 2016 Skymirrh'),
         StringStruct(u'OriginalFilename', u'alot_diff.exe')])
