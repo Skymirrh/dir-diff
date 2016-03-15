@@ -32,7 +32,7 @@ Added:     0
 Removed:   1
   
   
-Copying changes (2 files) to: diff-4.2-to-4.3.1
+Copying changes (2 files) to diff-4.2-to-4.3.1
 Done copying!
   
   
