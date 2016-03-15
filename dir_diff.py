@@ -12,16 +12,141 @@ and copy differences to a separate folder (default behavior).
 
 import argparse
 import os
-from os.path import abspath, basename, join
+from os.path import abspath, basename, isdir, join, relpath
 import filecmp
 import random
 import shutil
 import sys
 
 
-# Override default ArgumentParser error message
+class DirDiff(object):
+    """Main class, basically a wrapper around filecmp.dircmp with syntactic sugar."""
+    def __init__(self, prev_dir, next_dir, changes_dir=''):
+        # Directories
+        self.prev_dir = abspath(prev_dir)
+        self.next_dir = abspath(next_dir)
+        if changes_dir != '':
+            self.changes_dir = abspath(changes_dir)
+        else:
+            self.changes_dir = abspath('diff-{}-to-{}'.format(basename(self.prev_dir), basename(self.next_dir)))
+
+        # Initializing diff lists
+        self.unchanged = []
+        self.modified = []
+        self.added = []
+        self.removed = []
+
+        # Compare
+        dircmp = filecmp.dircmp(prev_dir, next_dir)
+        self.analyze(dircmp)
+
+    def analyze(self, dircmp):
+        # Analyze dircmp output and sort into lists, then recursively analyze common subdirectories.
+        self.unchanged += dircmp.same_files
+        self.modified += [relpath(join(dircmp.right, diff_file), self.next_dir) for diff_file in dircmp.diff_files]
+        self.added += [relpath(join(dircmp.right, new_file), self.next_dir) for new_file in dircmp.right_only]
+        self.removed += [relpath(join(dircmp.left, del_file), self.prev_dir) for del_file in dircmp.left_only]
+        for subdir in dircmp.subdirs.itervalues():
+            self.analyze(subdir)
+
+    def print_summary(self):
+        """Print a summary of changes."""
+        summary = """Summary of changes from {} to {}:
+Unchanged: {}
+Modified:  {}
+Added:     {}
+Removed:   {}\n\n""".format(basename(self.prev_dir), basename(self.next_dir),
+                            len(self.unchanged), len(self.modified), len(self.added), len(self.removed))
+        print(summary)
+
+    def print_details(self):
+        """Print a detailed report of changes."""
+        details = """Details of changes from {} to {}:
+==============================
+Modified:
+{}
+==============================
+Added:
+{}
+==============================
+Removed:
+{}\n\n""".format(basename(self.prev_dir), basename(self.next_dir),
+                 "\n".join(self.modified), "\n".join(self.added), "\n".join(self.removed))
+        print(details)
+
+    def print_paths(self):
+        """Print full paths of directories."""
+        print("""Full paths:
+prev:    {}
+next:    {}
+changes: {}\n\n""".format(self.prev_dir, self.next_dir, self.changes_dir))
+
+    def copy_changes(self, force_delete=False):
+        """Copy detected changes to a new folder for easy inspection."""
+        # Delete changes directory if --force-delete specified
+        if force_delete:
+            try:
+                print("Deleting changes directory.")
+                shutil.rmtree(self.changes_dir)
+            except OSError:
+                pass  # If directory can't be found
+
+        print("Copying changes ({} files) to {}".format(len(self.modified) + len(self.added) + len(self.removed),
+                                                        basename(self.changes_dir)))
+        modified_dir = join(self.changes_dir, "Modified")
+        added_dir = join(self.changes_dir, "Added")
+        removed_dir = join(self.changes_dir, "Removed")
+        dir_map = [  # (changes paths, destination directory, original directory)
+            (self.modified, modified_dir, self.next_dir),
+            (self.added, added_dir, self.next_dir),
+            (self.removed, removed_dir, self.prev_dir),
+        ]
+
+        # Try to create changes directory
+        try:
+            os.makedirs(self.changes_dir)
+        except OSError:
+            print("""Error: the changes directory already exists!
+Delete existing directory (-f) or choose another one ([changes]).
+See usage help (-h) for more information.\n""")
+        else:  # We're good, create a separate directory for each type of changes and populate
+            for changes, destination_directory, original_directory in dir_map:
+                if changes:
+                    os.makedirs(destination_directory)
+                    for change in changes:
+                        path = join(original_directory, change)
+                        try:
+                            if isdir(path):
+                                shutil.copytree(path, join(destination_directory, change))
+                            else:
+                                shutil.copyfile(path, join(destination_directory, change))
+                        except IOError:
+                            print("Error: can't copy file {}.".format(change))
+            print("Done copying!\n\n")
+
+
 class ShepardArgumentParser(argparse.ArgumentParser):
+    def __init__(self):
+        super(ShepardArgumentParser, self).__init__(description="Shepard-Commander, we have devised a utility tool to \
+        compare versions of a directory and copy detected discrepancies for inspection at your private terminal!",
+                                                    epilog=quote(), add_help=False)
+
+        mandatory = self.add_argument_group('Mandatory arguments')
+        mandatory.add_argument('prev', help="directory to compare against (usually: older version)")
+        mandatory.add_argument('next', help="directory to check for changes (usually: newer version)")
+
+        optional = self.add_argument_group('Optional arguments')
+        optional.add_argument('changes', help="directory where to store changes", nargs='?', default='')
+
+        options = self.add_argument_group('Options')
+        options.add_argument('-f', '--force-delete', help="delete existing [changes] directory before copying",
+                             action='store_true')
+        options.add_argument('-d', '--diff-only', help="compare only, no copying", action='store_true')
+        options.add_argument('-v', '--verbose', help="display additional information", action='store_true')
+        options.add_argument('-h', '--help', help="show this help message and exit", action='help')
+
     def error(self, message):
+        # Override default error message to print help when user supplies invalid arguments
         print("error: {}\n".format(message))
         self.print_help()
         sys.exit(2)
@@ -71,103 +196,26 @@ def quote():
 
 
 # Command line interface
-parser = ShepardArgumentParser(description="Shepard-Commander, we have devised a utility tool to compare versions of a \
-directory and copy detected discrepancies for inspection at your private terminal!", epilog=quote(), add_help=False)
-mandatory = parser.add_argument_group('Mandatory arguments')
-mandatory.add_argument('prev', help="directory to compare against (usually: older version)")
-mandatory.add_argument('next', help="directory to check for changes (usually: newer version)")
-optional = parser.add_argument_group('Optional arguments')
-optional.add_argument('changes', help="directory where to store changes", nargs='?', default='')
-options = parser.add_argument_group('Options')
-options.add_argument('-f', '--force', help="delete existing [changes] directory before copying", action='store_true')
-options.add_argument('-d', '--diff-only', help="compare only, no copying", action='store_true')
-options.add_argument('-v', '--verbose', help="display additional information", action='store_true')
-options.add_argument('-h', '--help', help="show this help message and exit", action='help')
+parser = ShepardArgumentParser()
 args = parser.parse_args()
 
 # The actual magic starts here (NO CATALYST INVOLVED, I PROMISE!)
-prev = abspath(args.prev)
-next = abspath(args.next)
+dir_diff = DirDiff(args.prev, args.next, args.changes)
+
+# Print full paths only in --verbose mode
 if args.verbose:
-    print("""Full paths:
-prev:  {}
-next:  {}\n\n""".format(prev, next))
+    dir_diff.print_paths()
 
-cmp = filecmp.dircmp(prev, next)
-unchanged = cmp.same_files
-modified = cmp.diff_files
-added = cmp.right_only
-removed = cmp.left_only
+# Always print summary
+dir_diff.print_summary()
 
-# Print a summary of changes
-summary = """Summary of changes from {} to {}:
-Unchanged: {}
-Modified:  {}
-Added:     {}
-Removed:   {}\n\n""".format(basename(prev), basename(next), len(unchanged), len(modified), len(added), len(removed))
-print(summary)
-
-# Copying changes
+# Always copy, unless --diff-only is specified
 if not args.diff_only:
-    if args.changes != '':
-        base_dir = abspath(args.changes)
-    else:
-        base_dir = abspath('diff-{}-to-{}'.format(basename(prev), basename(next)))
+    dir_diff.copy_changes(force_delete=args.force_delete)
 
-    if args.verbose:
-        displayed_path = "\n{}".format(base_dir)
-    else:
-        displayed_path = basename(base_dir)
-    print("Copying changes ({} files) to: {}".format(len(modified) + len(added) + len(removed), displayed_path))
-
-    modified_dir = join(base_dir, "Modified")
-    added_dir = join(base_dir, "Added")
-    removed_dir = join(base_dir, "Removed")
-    map = [
-        (modified, modified_dir),
-        (added, added_dir),
-        (removed, removed_dir),
-    ]
-
-    # Force delete
-    if args.force:
-        try:
-            shutil.rmtree(base_dir)
-        except OSError:
-            pass  # If directory can't be found
-
-    # Create a separate directory for each type of changes and populate
-    try:
-        os.makedirs(base_dir)
-    except OSError:
-        print("""Error: the changes directory already exists!
-Delete existing directory or choose another one.
-See usage help (-h) for more information.\n""")
-    else:
-        for list, dir in map:
-            if list:
-                os.makedirs(dir)
-                for file in list:
-                    path = join(cmp.left, file)
-                    try:
-                        shutil.copyfile(path, join(dir, file))
-                    except IOError:
-                        print("Error: can't copy file {}.".format(file))
-        print("Done copying!\n\n")
-
-# Detailed report
+# Print details only in --verbose mode
 if args.verbose:
-    details = """Details of changes from {} to {}:
-==============================
-Modified:
-{}
-==============================
-Added:
-{}
-==============================
-Removed:
-{}\n\n""".format(basename(prev), basename(next), "\n".join(modified), "\n".join(added), "\n".join(removed))
-    print(details)
+    dir_diff.print_details()
 
 # Ad astra per astera
 print(quote())
