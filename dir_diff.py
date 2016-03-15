@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # Author: Skymirrh (skymirrh@skymirrh.net)
-# Version: 1.0.0
+# Version: 1.1.0
 """Simple directory diff tool.
 
 Initially developed to compare versions of ALOT (Mass Effect mod) and facilitate
