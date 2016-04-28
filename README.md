@@ -9,17 +9,29 @@ and copy differences to a separate folder (default behavior).
 
 Installation
 ------------
-If you already have Python installed on your machine, you can simply grab an archive of
-[the latest release](https://github.com/Skymirrh/dir-diff/releases/latest).
-If you do not have Python installed, you can download a Windows executable of
-[the latest release](https://github.com/Skymirrh/dir-diff/releases/latest) built using
-[PyInstaller](http://www.pyinstaller.org/).
+There are two versions you can download, both with the same functionality:
+* Windows executable (`dir_diff.exe`) (built using [PyInstaller](http://www.pyinstaller.org/))
+* Python script (`dir_diff.py`) (Python2 only, Python3 not supported)
+
+**If you're not sure which one to choose, download `dir_diff.exe` from [the latest release](https://github.com/Skymirrh/dir-diff/releases/latest).**
+
+If you already have Python installed on your machine, I suggest you use the script version since it is way smaller in size. Simply grab the ZIP archive of [the latest release](https://github.com/Skymirrh/dir-diff/releases/latest).
 
 Usage
 -----
-Both the Python script and the Windows executable offer the same functionality.
-Open a command prompt (`Windows+R` and run `cmd.exe`) and run `dir_diff.py` or `dir_diff.exe`:
-a help message will provide you the syntax and optional arguments of the tool.
+##### Solution 1
+* Open the directory where you stored `dir_diff.exe`
+* Open a command prompt (`Shift`+`RightClick` with the mouse on empty space and `Open command window here`)
+* Run `dir_diff.exe`
+
+##### Solution 2
+* Open a command prompt (`Windows+R` and run `cmd.exe`)
+* Navigate to the directory where you stored `dir_diff.exe` using `cd Path\To\Download\Directory`
+* Run `dir_diff.exe`
+ 
+##### After that...
+A help message will provide you the syntax and optional arguments of the tool. In the basic use case, you only need to provide the paths to the directories you want to compare, as in the example below.
+
 
 Example
 -------
@@ -38,4 +50,4 @@ Done copying!
   
 I'm Commander Shepard, and this is my favorite store on the Citadel!
 ```
-And then you will find the changes under `diff-4.2-to-4.3.1`, neatly arranged by folder :)
+In this example, a folder `diff-4.2-to-4.3.1` is created, where you will find all the differences between the two versions, neatly arranged by folder depending on type (modified, added, or removed).
